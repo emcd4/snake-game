@@ -1,14 +1,16 @@
-- [ ] Create board
-    - [ ] Matrix representation
-- [ ] Create snake
-    - [ ] Singly linked list representation
-    - [ ] Handle snake growth
+- [x] Create board
+    - [x] Matrix representation
+- [x] Create snake
+    - [x] Singly linked list representation
+    - [x] Handle snake growth
     - [ ] Handle snake direction reversal
-- [ ] Styles
-    - [ ] Snake cells
-    - [ ] Food cells
-- [ ] Handle keypresses
-- [ ] Handle movements
+- [x] Styles
+    - [x] Snake cells
+    - [x] Food cells
+- [x] Handle keypresses
+- [x] Handle movements
+- [ ] Handle hitting borders
+- [ ] Handle hitting snake body
 - [ ] Handle food consumption
 - [ ] Handle death
 - [ ] Handle score
