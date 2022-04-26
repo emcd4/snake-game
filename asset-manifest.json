@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/snake/static/css/main.b4829733.css",
+    "main.js": "/snake/static/js/main.99b04489.js",
+    "index.html": "/snake/index.html",
+    "main.b4829733.css.map": "/snake/static/css/main.b4829733.css.map",
+    "main.99b04489.js.map": "/snake/static/js/main.99b04489.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.b4829733.css",
+    "static/js/main.99b04489.js"
+  ]
+}
