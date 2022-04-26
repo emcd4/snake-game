@@ -13,6 +13,7 @@
 - [x] Handle hitting snake body
 - [x] Handle food creation
 - [x] Handle food consumption
+- [x] Increase speed with food consumption
 - [ ] Handle death
 - [ ] Handle score
 - [ ] Handle game start and game reset

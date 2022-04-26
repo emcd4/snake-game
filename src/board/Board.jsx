@@ -4,6 +4,8 @@ import {useInterval, randomIntFromInterval} from '../lib/utils.js';
 import './Board.css';
 
 const BOARD_SIZE = 12;
+const DELTA_SPEED = 10;
+const DELTA_SCORE = 1;
 
 let direction;
 
@@ -128,7 +130,7 @@ const Board = () => {
             endGame();
             return;
         }
-        
+
         if (nextHeadCellValue === foodCell) {
             consumeFood();
         }
@@ -162,8 +164,19 @@ const Board = () => {
     const consumeFood = () => {
         let nextFoodCell = getNextFoodCell();
         setFoodCell(nextFoodCell);
-        setScore(score + 1);
+        increaseSpeed();
+        incrementScore();
         growSnake();
+    };
+
+    const increaseSpeed = () => {
+        if (snakeSpeed > 100) {
+            setSnakeSpeed(snakeSpeed - DELTA_SPEED);
+        }
+    }
+
+    const incrementScore = () => {
+        setScore(score + DELTA_SCORE);
     }
 
     const getNextFoodCell = () => {
@@ -174,7 +187,7 @@ const Board = () => {
                 return nextFoodCell;
             }
         }
-    }
+    };
 
     const getCellStyle = (cellValue) => {
         let cellStyle = '';
@@ -185,7 +198,7 @@ const Board = () => {
             cellStyle = 'snake-cell';
         }
         return cellStyle;
-    }
+    };
 
     return (
         <div>
