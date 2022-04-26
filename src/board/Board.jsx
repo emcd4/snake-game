@@ -197,11 +197,11 @@ const Board = () => {
         if (snakeSpeed > 100) {
             setSnakeSpeed(snakeSpeed - DELTA_SPEED);
         }
-    }
+    };
 
     const incrementScore = () => {
         setScore(score + DELTA_SCORE);
-    }
+    };
 
     const getNextFoodCell = () => {
         let nextFoodCell;
@@ -226,7 +226,7 @@ const Board = () => {
 
     const reload = () => {
         window.location.reload();
-    }
+    };
 
     return (
         <div class="content">
@@ -254,9 +254,9 @@ const Board = () => {
     );
 };
 
-function displayElement(elementId) {
+const displayElement = (elementId) => {
     document.getElementById(elementId).style.display = "block";
-}
+};
 
 const createBoard = (BOARD_SIZE) => {
     let counter = 1;
@@ -287,7 +287,7 @@ const getNodeDirection = (node) => {
     if (node.value.getCol() > next.value.getCol()) {
         return Direction.LEFT;
     }
-}
+};
 
 const getDirectionFromKey = (key) => {
     if (key === 'ArrowUp') return Direction.UP;
@@ -295,7 +295,7 @@ const getDirectionFromKey = (key) => {
     if (key === 'ArrowRight') return Direction.RIGHT;
     if (key === 'ArrowLeft') return Direction.LEFT;
     return '';
-}
+};
 
 const getNextCoords = (coords, dir) => {
     let newCoords;
@@ -330,7 +330,7 @@ const getNextCoords = (coords, dir) => {
 
 const isValidDirection = (direction) => {
     return direction !== '';
-}
+};
 
 const getOppositeDirection = (direction) => {
     switch(direction) {
@@ -344,18 +344,18 @@ const getOppositeDirection = (direction) => {
             return Direction.RIGHT;
     }
     return '';
-}
+};
 
 const getGrowDirection = (tail, direction) => {
     const nodeDirection = getNodeDirection(tail);
     const tailDirection = isValidDirection(nodeDirection) ? nodeDirection : direction;
     const growDirection = getOppositeDirection(tailDirection);
     return growDirection;
-}
+};
 
 const getCellValueFromCoords = (board, coords) => {
     return board[coords.row][coords.col];
-}
+};
 
 const getCoordsFromCellValue = (cellVal) => {
     let row = Math.floor((cellVal-1)/BOARD_SIZE);
@@ -364,20 +364,20 @@ const getCoordsFromCellValue = (cellVal) => {
         col = BOARD_SIZE - 1;
     }
     return new Coords(row, col);
-}
+};
 
 const generateStartPosition = (board) => {
     const cellVal = (BOARD_SIZE * 6) - (BOARD_SIZE - 3);
     const coords = getCoordsFromCellValue(cellVal);
     return new CellData(coords, cellVal);
-}
+};
 
 const getFirstFoodCell = () => {
     return (BOARD_SIZE * 6) - 2;
-}
+};
 
 const isOutOfBounds = (coords) => {
     return coords.row >= BOARD_SIZE || coords.row < 0 || coords.col >= BOARD_SIZE || coords.col < 0;
-}
+};
 
 export default Board;
