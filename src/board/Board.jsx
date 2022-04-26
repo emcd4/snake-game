@@ -4,6 +4,7 @@ import {useInterval, randomIntFromInterval} from '../lib/utils.js';
 import './Board.css';
 
 const BOARD_SIZE = 12;
+const SNAKE_SPEED = 250;
 const DELTA_SPEED = 10;
 const DELTA_SCORE = 1;
 
@@ -59,6 +60,24 @@ class LinkedList {
         this.tail = newNode;
         this.length = this.length + 1;
     }
+
+    toString() {
+        let str = '';
+        let curr = this.head;
+        while(curr !== null) {
+            str = str + `${curr.value.getCell()} -> `;
+            curr = curr.next;
+        }
+        str = str + 'null';
+        return str
+    }
+
+    newList(value) {
+        const node = new LinkedListNode(value);
+        this.head = node;
+        this.tail = node;
+        this.length = 1;
+    }
 }
 
 // Top left corner is (x = 0, y = 0)
@@ -76,17 +95,21 @@ const Direction = {
     LEFT: 'LEFT'
 };
 
+let restart = false;
+
 const Board = () => {
     const [board, setBoard] = useState(createBoard(BOARD_SIZE));
-    const START_POS = generateStartPosition(board);
+    const startPos = generateStartPosition(board);
     const [score, setScore] = useState(0);
     const [gameOver, setGameOver] = useState(false);
+    const [endMessage, setEndMessage] = useState("You Lose!");
 
-    const [snake, setSnake] = useState(new LinkedList(START_POS));
-    const [snakeCells, setSnakeCells] = useState(new Set([START_POS.cell]));
-    const [snakeSpeed, setSnakeSpeed] = useState(250);
 
-    const [foodCell, setFoodCell] = useState(generateFirstFoodCell());
+    const [snake, setSnake] = useState(new LinkedList(startPos));
+    const [snakeCells, setSnakeCells] = useState(new Set([startPos.cell]));
+    const [snakeSpeed, setSnakeSpeed] = useState(SNAKE_SPEED);
+
+    const [foodCell, setFoodCell] = useState(getFirstFoodCell());
 
     useInterval(() => {
         if (!gameOver) {
@@ -99,10 +122,11 @@ const Board = () => {
     };
 
     window.addEventListener('load', e => {
-        direction = Direction.DOWN;
+        direction = Direction.RIGHT;
     });
 
     const endGame = () => {
+        displayElement('overlay');
         setGameOver(true);
     };
 
@@ -120,13 +144,13 @@ const Board = () => {
         const tailCell = snake.tail.value.getCell();
         const nextHeadCoordinates = getNextCoords(currHeadCoords, direction);
         if (isOutOfBounds(nextHeadCoordinates)) {
-            console.log("Out of Bounds!");
+            setEndMessage("Snake hit the wall!");
             endGame();
             return;
         }
         const nextHeadCellValue = getCellValueFromCoords(board, nextHeadCoordinates);
         if (snakeCells.has(nextHeadCellValue)) {
-            console.log("Collision!");
+            setEndMessage("Snake ate it's tail!");
             endGame();
             return;
         }
@@ -200,24 +224,39 @@ const Board = () => {
         return cellStyle;
     };
 
+    const reload = () => {
+        window.location.reload();
+    }
+
     return (
-        <div>
-            <div className="title">Snake Game</div>
-            <div className="score">Score: {score}</div>
-            <div className="board">
-                {board.map((row, rowIdx) => {
-                    return <div key={rowIdx} className="row">
-                        {row.map((cellValue, cellIdx) => {
-                            return <div 
-                            key={cellIdx} 
-                            className={`cell ${getCellStyle(cellValue)}`}>{cellValue}</div>
-                        })}
-                    </div>
-                })}
+        <div class="content">
+            <div id="overlay" class="overlay">
+                <h1 class="header">Game Over</h1>
+                <p class="paragraph">{endMessage}</p>
+                <button class="button" onClick={reload}>Restart</button>
             </div>
-        </div>
+            <div class="title">Snake Game</div>
+            <div>
+                <div class="score">Score: {score}</div>
+                <div class="board">
+                    {board.map((row, rowIdx) => {
+                        return <div key={rowIdx} class="row">
+                            {row.map((cellValue, cellIdx) => {
+                                return <div 
+                                key={cellIdx} 
+                                class={`cell ${getCellStyle(cellValue)}`}>{cellValue}</div>
+                            })}
+                        </div>
+                    })}
+                </div>
+            </div>
+    </div>
     );
 };
+
+function displayElement(elementId) {
+    document.getElementById(elementId).style.display = "block";
+}
 
 const createBoard = (BOARD_SIZE) => {
     let counter = 1;
@@ -318,16 +357,23 @@ const getCellValueFromCoords = (board, coords) => {
     return board[coords.row][coords.col];
 }
 
+const getCoordsFromCellValue = (cellVal) => {
+    let row = Math.floor((cellVal-1)/BOARD_SIZE);
+    let col = (cellVal % BOARD_SIZE) - 1;
+    if ((cellVal % BOARD_SIZE) === 0) {
+        col = BOARD_SIZE - 1;
+    }
+    return new Coords(row, col);
+}
+
 const generateStartPosition = (board) => {
-    const rowVal = Math.floor(BOARD_SIZE / 2);
-    const colVal = Math.floor(BOARD_SIZE / 2)
-    const coords = new Coords(rowVal, colVal);
-    const cellVal = getCellValueFromCoords(board, coords);
+    const cellVal = (BOARD_SIZE * 6) - (BOARD_SIZE - 3);
+    const coords = getCoordsFromCellValue(cellVal);
     return new CellData(coords, cellVal);
 }
 
-const generateFirstFoodCell = () => {
-    return (BOARD_SIZE * 3) - Math.floor(BOARD_SIZE / 3);
+const getFirstFoodCell = () => {
+    return (BOARD_SIZE * 6) - 2;
 }
 
 const isOutOfBounds = (coords) => {
