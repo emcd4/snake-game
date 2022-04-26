@@ -244,7 +244,7 @@ const Board = () => {
                             {row.map((cellValue, cellIdx) => {
                                 return <div 
                                 key={cellIdx} 
-                                class={`cell ${getCellStyle(cellValue)}`}>{cellValue}</div>
+                                class={`cell ${getCellStyle(cellValue)}`}>{}</div>
                             })}
                         </div>
                     })}
