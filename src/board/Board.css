@@ -62,7 +62,7 @@
 
 .button {
     position: relative;
-    bottom: 40px;
+    bottom: 45px;
     padding-left: 25px;
     padding-right: 25px;
     padding-top: 14px;
@@ -76,12 +76,12 @@
 
 .header {
     position: relative;
-    bottom: 10px;
+    bottom: 15px;
     font-size: 44px;
 }
 
 .paragraph {
     position: relative;
-    bottom: 35px;
+    bottom: 40px;
     font-size: 18px;
 }
