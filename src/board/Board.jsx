@@ -1,17 +1,30 @@
 import React, {useState, useEffect} from 'react';
-import {useInterval, useUpdate} from '../lib/utils.js';
+import {useInterval, randomIntFromInterval} from '../lib/utils.js';
 
 import './Board.css';
 
-const BOARD_SIZE = 10;
+const BOARD_SIZE = 12;
 
 let direction;
 
-const START_POS = {
-    row: 0,
-    col: 4,
-    cell: 5
-};
+class CellData {
+    constructor(coords, cell) {
+        this.coords = coords;
+        this.cell = cell;
+    }
+
+    getRow() {
+        return this.coords.row;
+    }
+
+    getCol() {
+        return this.coords.col;
+    }
+
+    getCell() {
+        return this.cell;
+    }
+}
 
 class LinkedListNode {
     constructor(value) {
@@ -46,6 +59,7 @@ class LinkedList {
     }
 }
 
+// Top left corner is (x = 0, y = 0)
 class Coords {
     constructor(x, y) {
         this.row = x;
@@ -62,12 +76,21 @@ const Direction = {
 
 const Board = () => {
     const [board, setBoard] = useState(createBoard(BOARD_SIZE));
-    const [snakeCells, setSnakeCells] = useState(new Set([START_POS.cell]));
+    const START_POS = generateStartPosition(board);
+    const [score, setScore] = useState(0);
+    const [gameOver, setGameOver] = useState(false);
+
     const [snake, setSnake] = useState(new LinkedList(START_POS));
+    const [snakeCells, setSnakeCells] = useState(new Set([START_POS.cell]));
+    const [snakeSpeed, setSnakeSpeed] = useState(250);
+
+    const [foodCell, setFoodCell] = useState(generateFirstFoodCell());
 
     useInterval(() => {
-        moveSnake();
-    }, 250);
+        if (!gameOver) {
+            moveSnake();
+        }
+    }, snakeSpeed);
 
     document.onkeydown = function (e) {
         handleKeyDown(e);
@@ -76,6 +99,10 @@ const Board = () => {
     window.addEventListener('load', e => {
         direction = Direction.DOWN;
     });
+
+    const endGame = () => {
+        setGameOver(true);
+    };
 
     const handleKeyDown = e => {
         const newDirection = getDirectionFromKey(e.key);
@@ -87,21 +114,31 @@ const Board = () => {
     };
 
     const moveSnake = () => {
-        const currHeadCoords = new Coords(snake.head.value.row, snake.head.value.col);
+        const currHeadCoords = new Coords(snake.head.value.getRow(), snake.head.value.getCol());
+        const tailCell = snake.tail.value.getCell();
         const nextHeadCoordinates = getNextCoords(currHeadCoords, direction);
+        if (isOutOfBounds(nextHeadCoordinates)) {
+            console.log("Out of Bounds!");
+            endGame();
+            return;
+        }
         const nextHeadCellValue = getCellValueFromCoords(board, nextHeadCoordinates);
-        const tailCell = snake.tail.value.cell;
+        if (snakeCells.has(nextHeadCellValue)) {
+            console.log("Collision!");
+            endGame();
+            return;
+        }
+        
+        if (nextHeadCellValue === foodCell) {
+            consumeFood();
+        }
 
-        const newHead = new LinkedListNode({
-            row: nextHeadCoordinates.row,
-            col: nextHeadCoordinates.col,
-            cell: nextHeadCellValue
-        });
+        const newHead = new LinkedListNode(new CellData(nextHeadCoordinates, nextHeadCellValue));
         snake.addNodeToStart(newHead);
         snake.removeLastNode();
 
         const newSnakeCells = new Set(snakeCells);
-        newSnakeCells.add(newHead.value.cell);
+        newSnakeCells.add(newHead.value.getCell());
         newSnakeCells.delete(tailCell);
 
         setSnakeCells(newSnakeCells);
@@ -110,15 +147,11 @@ const Board = () => {
     const growSnake = () => {
         const growDirection = getGrowDirection(snake.tail, direction);
 
-        const currTailCoords = new Coords(snake.tail.value.row, snake.tail.value.col);
+        const currTailCoords = new Coords(snake.tail.value.getRow(), snake.tail.value.getCol());
         const newCoords = getNextCoords(currTailCoords, growDirection);
         const newCellValue = getCellValueFromCoords(board, newCoords);
 
-        const newNode = new LinkedListNode({
-            row: newCoords.row,
-            col: newCoords.col,
-            cell: newCellValue
-        });
+        const newNode = new LinkedListNode(new CellData(newCoords, newCellValue));
         snake.addNodeToEnd(newNode);
         
         const newSnakeCells = new Set(snakeCells);
@@ -126,16 +159,45 @@ const Board = () => {
         setSnakeCells(newSnakeCells);
     };
 
+    const consumeFood = () => {
+        let nextFoodCell = getNextFoodCell();
+        setFoodCell(nextFoodCell);
+        setScore(score + 1);
+        growSnake();
+    }
+
+    const getNextFoodCell = () => {
+        let nextFoodCell;
+        while (true) {
+            nextFoodCell = randomIntFromInterval(1, BOARD_SIZE * BOARD_SIZE);
+            if (foodCell !== nextFoodCell && !snakeCells.has(nextFoodCell)) {
+                return nextFoodCell;
+            }
+        }
+    }
+
+    const getCellStyle = (cellValue) => {
+        let cellStyle = '';
+        if (foodCell === cellValue) {
+            cellStyle = 'food-cell'; 
+        }
+        if (snakeCells.has(cellValue)) {
+            cellStyle = 'snake-cell';
+        }
+        return cellStyle;
+    }
+
     return (
         <div>
-            <button onClick={growSnake}>Grow Snake</button>
+            <div className="title">Snake Game</div>
+            <div className="score">Score: {score}</div>
             <div className="board">
                 {board.map((row, rowIdx) => {
                     return <div key={rowIdx} className="row">
                         {row.map((cellValue, cellIdx) => {
                             return <div 
                             key={cellIdx} 
-                            className={`cell ${snakeCells.has(cellValue) ? "snake-cell" : ""}`}>{}</div>
+                            className={`cell ${getCellStyle(cellValue)}`}>{cellValue}</div>
                         })}
                     </div>
                 })}
@@ -161,16 +223,16 @@ const createBoard = (BOARD_SIZE) => {
 const getNodeDirection = (node) => {
     if (node === null || node.next === null) return '';
     const next = node.next;
-    if (node.value.row > next.value.row) {
+    if (node.value.getRow() > next.value.getRow()) {
         return Direction.UP;
     }
-    if (node.value.row < next.value.row) {
+    if (node.value.getRow() < next.value.getRow()) {
         return Direction.DOWN;
     }
-    if (node.value.col < next.value.col) {
+    if (node.value.getCol() < next.value.getCol()) {
         return Direction.RIGHT;
     }
-    if (node.value.col > next.value.col) {
+    if (node.value.getCol() > next.value.getCol()) {
         return Direction.LEFT;
     }
 }
@@ -187,39 +249,27 @@ const getNextCoords = (coords, dir) => {
     let newCoords;
     switch (dir) {
         case Direction.UP:
-            let newRowCoord;
-            if (coords.row - 1 < 0) {
-                newRowCoord = BOARD_SIZE - 1;
-            } else {
-                newRowCoord = coords.row - 1
-            }
             newCoords = new Coords(
-                newRowCoord,
+                coords.row - 1,
                 coords.col
             );
             break;
         case Direction.DOWN:
             newCoords = new Coords(
-                (coords.row + 1) % BOARD_SIZE,
+                coords.row + 1,
                 coords.col
             );
             break;
         case Direction.RIGHT:
             newCoords = new Coords(
                 coords.row,
-                (coords.col + 1) % BOARD_SIZE
+                coords.col + 1
             );
             break;
         case Direction.LEFT:
-            let newColCoord;
-            if (coords.col - 1 < 0) {
-                newColCoord = BOARD_SIZE - 1;
-            } else {
-                newColCoord = coords.col - 1
-            }
             newCoords = new Coords(
                 coords.row,
-                newColCoord
+                coords.col - 1
             );
             break;
     }
@@ -253,6 +303,22 @@ const getGrowDirection = (tail, direction) => {
 
 const getCellValueFromCoords = (board, coords) => {
     return board[coords.row][coords.col];
+}
+
+const generateStartPosition = (board) => {
+    const rowVal = Math.floor(BOARD_SIZE / 2);
+    const colVal = Math.floor(BOARD_SIZE / 2)
+    const coords = new Coords(rowVal, colVal);
+    const cellVal = getCellValueFromCoords(board, coords);
+    return new CellData(coords, cellVal);
+}
+
+const generateFirstFoodCell = () => {
+    return (BOARD_SIZE * 3) - Math.floor(BOARD_SIZE / 3);
+}
+
+const isOutOfBounds = (coords) => {
+    return coords.row >= BOARD_SIZE || coords.row < 0 || coords.col >= BOARD_SIZE || coords.col < 0;
 }
 
 export default Board;

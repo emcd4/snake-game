@@ -3,15 +3,16 @@
 - [x] Create snake
     - [x] Singly linked list representation
     - [x] Handle snake growth
-    - [ ] Handle snake direction reversal
+    - [x] Handle snake direction reversal
 - [x] Styles
     - [x] Snake cells
     - [x] Food cells
 - [x] Handle keypresses
 - [x] Handle movements
-- [ ] Handle hitting borders
-- [ ] Handle hitting snake body
-- [ ] Handle food consumption
+- [x] Handle hitting borders
+- [x] Handle hitting snake body
+- [x] Handle food creation
+- [x] Handle food consumption
 - [ ] Handle death
 - [ ] Handle score
 - [ ] Handle game start and game reset

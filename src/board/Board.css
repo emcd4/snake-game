@@ -2,6 +2,21 @@
     outline: 2px solid rgb(134, 154, 189);
 }
 
+.title {
+    position: absolute;
+    top: 5px;
+    width: 600px;
+    text-align: center;
+    font-size: calc(20px + 2vmin);
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.score {
+    padding-bottom: 10px;
+    font-size: calc(4px + 2vmin);
+}
+
 .row {
     height: 50px;
 }
@@ -11,12 +26,15 @@
     width: 50px;
     outline: 1px solid rgb(134, 154, 189);
     display: inline-block;
+    color: #34445e;
 }
 
 .snake-cell {
     background-color: darkgreen;
+    color: darkgreen;
 }
 
 .food-cell {
     background-color: darkred;
+    color: darkred;
 }
