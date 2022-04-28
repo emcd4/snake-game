@@ -1,5 +1,5 @@
-import React, {useState, useEffect} from 'react';
-import {useInterval, randomIntFromInterval} from '../lib/utils.js';
+import React, {useState} from 'react';
+import {useInterval, randomIntFromInterval, reverseSinglyLinkedList} from '../lib/utils.js';
 
 import './Board.css';
 
@@ -7,8 +7,11 @@ const BOARD_SIZE = 12;
 const SNAKE_SPEED = 250;
 const DELTA_SPEED = 10;
 const DELTA_SCORE = 1;
+const PROBABILITY_FOOD_REVERSES_SNAKE = 0.3;
+const INVALID_DIRECTION = 'INVALID';
 
 let direction;
+let foodShouldReverseDirection;
 
 class CellData {
     constructor(coords, cell) {
@@ -29,14 +32,14 @@ class CellData {
     }
 }
 
-class LinkedListNode {
+export class LinkedListNode {
     constructor(value) {
         this.value = value;
         this.next = null;
     }
 }
 
-class LinkedList {
+export class LinkedList {
     constructor(value) {
         const node = new LinkedListNode(value);
         this.head = node;
@@ -63,20 +66,13 @@ class LinkedList {
 
     toString() {
         let str = '';
-        let curr = this.head;
+        let curr = this.tail;
         while(curr !== null) {
             str = str + `${curr.value.getCell()} -> `;
             curr = curr.next;
         }
         str = str + 'null';
-        return str
-    }
-
-    newList(value) {
-        const node = new LinkedListNode(value);
-        this.head = node;
-        this.tail = node;
-        this.length = 1;
+        return str;
     }
 }
 
@@ -95,8 +91,6 @@ const Direction = {
     LEFT: 'LEFT'
 };
 
-let restart = false;
-
 const Board = () => {
     const [board, setBoard] = useState(createBoard(BOARD_SIZE));
     const startPos = generateStartPosition(board);
@@ -104,12 +98,12 @@ const Board = () => {
     const [gameOver, setGameOver] = useState(false);
     const [endMessage, setEndMessage] = useState("You Lose!");
 
-
     const [snake, setSnake] = useState(new LinkedList(startPos));
     const [snakeCells, setSnakeCells] = useState(new Set([startPos.cell]));
     const [snakeSpeed, setSnakeSpeed] = useState(SNAKE_SPEED);
 
     const [foodCell, setFoodCell] = useState(getFirstFoodCell());
+    const [foodReversesSnake, setFoodReversesSnake] = useState(false);
 
     useInterval(() => {
         if (!gameOver) {
@@ -123,6 +117,7 @@ const Board = () => {
 
     window.addEventListener('load', e => {
         direction = Direction.RIGHT;
+        foodShouldReverseDirection = false;
     });
 
     const endGame = () => {
@@ -132,32 +127,55 @@ const Board = () => {
 
     const handleKeyDown = e => {
         const newDirection = getDirectionFromKey(e.key);
-        const isValidDirection = newDirection !== '';
+        const isValidDirection = newDirection !== INVALID_DIRECTION;
         if (!isValidDirection) return;
         const snakeWillRunIntoItself = snake.length > 1 && getOppositeDirection(newDirection) === direction;
         if (snakeWillRunIntoItself) return;
         direction = newDirection;
     };
 
-    const moveSnake = () => {
+    const aboutToHitWall = () => {
         const currHeadCoords = new Coords(snake.head.value.getRow(), snake.head.value.getCol());
-        const tailCell = snake.tail.value.getCell();
         const nextHeadCoordinates = getNextCoords(currHeadCoords, direction);
-        if (isOutOfBounds(nextHeadCoordinates)) {
+        return isOutOfBounds(nextHeadCoordinates);
+    }
+
+    const aboutToEatSelf = () => {
+        const currHeadCoords = new Coords(snake.head.value.getRow(), snake.head.value.getCol());
+        const nextHeadCoordinates = getNextCoords(currHeadCoords, direction);
+        const nextHeadCellValue = getCellValueFromCoords(board, nextHeadCoordinates);
+        return snakeCells.has(nextHeadCellValue);
+    }
+
+    const aboutToEatFood = () => {
+        const currHeadCoords = new Coords(snake.head.value.getRow(), snake.head.value.getCol());
+        const nextHeadCoordinates = getNextCoords(currHeadCoords, direction);
+        const nextHeadCellValue = getCellValueFromCoords(board, nextHeadCoordinates);
+        return nextHeadCellValue === foodCell;
+    }
+
+    const moveSnake = () => {        
+        if (aboutToHitWall()) {
             setEndMessage("Snake hit the wall!");
             endGame();
             return;
         }
-        const nextHeadCellValue = getCellValueFromCoords(board, nextHeadCoordinates);
-        if (snakeCells.has(nextHeadCellValue)) {
+
+        if (aboutToEatSelf()) {
             setEndMessage("Snake ate it's tail!");
             endGame();
             return;
         }
 
-        if (nextHeadCellValue === foodCell) {
+        if (aboutToEatFood()) {
             consumeFood();
         }
+
+        const tailCell = snake.tail.value.getCell();
+
+        const currHeadCoords = new Coords(snake.head.value.getRow(), snake.head.value.getCol());
+        const nextHeadCoordinates = getNextCoords(currHeadCoords, direction);
+        const nextHeadCellValue = getCellValueFromCoords(board, nextHeadCoordinates);
 
         const newHead = new LinkedListNode(new CellData(nextHeadCoordinates, nextHeadCellValue));
         snake.addNodeToStart(newHead);
@@ -171,7 +189,7 @@ const Board = () => {
     };
 
     const growSnake = () => {
-        const growDirection = getGrowDirection(snake.tail, direction);
+        const growDirection = getOppositeDirectionOfNode(snake.tail, direction);
 
         const currTailCoords = new Coords(snake.tail.value.getRow(), snake.tail.value.getCol());
         const newCoords = getNextCoords(currTailCoords, growDirection);
@@ -179,13 +197,22 @@ const Board = () => {
 
         const newNode = new LinkedListNode(new CellData(newCoords, newCellValue));
         snake.addNodeToEnd(newNode);
-        
+        setSnake(snake);
+
         const newSnakeCells = new Set(snakeCells);
         newSnakeCells.add(newCellValue);
         setSnakeCells(newSnakeCells);
     };
 
+    const reverseSnake = () => {
+        const newDirection = getOppositeDirection(getNodeDirection(snake.tail));
+        const newSnake = reverseSinglyLinkedList(snake);
+        setSnake(newSnake);
+        direction = newDirection;
+    };
+
     const consumeFood = () => {
+        if (foodReversesSnake) reverseSnake();
         let nextFoodCell = getNextFoodCell();
         setFoodCell(nextFoodCell);
         increaseSpeed();
@@ -205,6 +232,9 @@ const Board = () => {
 
     const getNextFoodCell = () => {
         let nextFoodCell;
+
+        setFoodReversesSnake(Math.random() < PROBABILITY_FOOD_REVERSES_SNAKE);
+
         while (true) {
             nextFoodCell = randomIntFromInterval(1, BOARD_SIZE * BOARD_SIZE);
             if (foodCell !== nextFoodCell && !snakeCells.has(nextFoodCell)) {
@@ -216,7 +246,11 @@ const Board = () => {
     const getCellStyle = (cellValue) => {
         let cellStyle = '';
         if (foodCell === cellValue) {
-            cellStyle = 'food-cell'; 
+            if (foodReversesSnake) {
+                cellStyle = 'reverse-food-cell';
+            } else {
+                cellStyle = 'food-cell';
+            }
         }
         if (snakeCells.has(cellValue)) {
             cellStyle = 'snake-cell';
@@ -229,22 +263,22 @@ const Board = () => {
     };
 
     return (
-        <div class="content">
-            <div id="overlay" class="overlay">
-                <h1 class="header">Game Over</h1>
-                <p class="paragraph">{endMessage}</p>
-                <button class="button" onClick={reload}>Restart</button>
+        <div className="content">
+            <div id="overlay" className="overlay">
+                <h1 className="header">Game Over</h1>
+                <p className="paragraph">{endMessage}</p>
+                <button className="button" onClick={reload}>Restart</button>
             </div>
-            <div class="title">Snake Game</div>
+            <div className="title">Snake Game</div>
             <div>
-                <div class="score">Score: {score}</div>
-                <div class="board">
+                <div className="score">Score: {score}</div>
+                <div className="board">
                     {board.map((row, rowIdx) => {
-                        return <div key={rowIdx} class="row">
+                        return <div key={rowIdx} className="row">
                             {row.map((cellValue, cellIdx) => {
                                 return <div 
                                 key={cellIdx} 
-                                class={`cell ${getCellStyle(cellValue)}`}>{}</div>
+                                className={`cell ${getCellStyle(cellValue)}`}>{}</div>
                             })}
                         </div>
                     })}
@@ -273,7 +307,7 @@ const createBoard = (BOARD_SIZE) => {
 };
 
 const getNodeDirection = (node) => {
-    if (node === null || node.next === null) return '';
+    if (node === null || node.next === null) return direction;
     const next = node.next;
     if (node.value.getRow() > next.value.getRow()) {
         return Direction.UP;
@@ -294,7 +328,7 @@ const getDirectionFromKey = (key) => {
     if (key === 'ArrowDown') return Direction.DOWN;
     if (key === 'ArrowRight') return Direction.RIGHT;
     if (key === 'ArrowLeft') return Direction.LEFT;
-    return '';
+    return INVALID_DIRECTION;
 };
 
 const getNextCoords = (coords, dir) => {
@@ -329,7 +363,7 @@ const getNextCoords = (coords, dir) => {
 };
 
 const isValidDirection = (direction) => {
-    return direction !== '';
+    return direction !== INVALID_DIRECTION;
 };
 
 const getOppositeDirection = (direction) => {
@@ -343,11 +377,11 @@ const getOppositeDirection = (direction) => {
         case Direction.LEFT:
             return Direction.RIGHT;
     }
-    return '';
+    return INVALID_DIRECTION;
 };
 
-const getGrowDirection = (tail, direction) => {
-    const nodeDirection = getNodeDirection(tail);
+const getOppositeDirectionOfNode = (node, direction) => {
+    const nodeDirection = getNodeDirection(node);
     const tailDirection = isValidDirection(nodeDirection) ? nodeDirection : direction;
     const growDirection = getOppositeDirection(tailDirection);
     return growDirection;
