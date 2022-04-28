@@ -1,7 +1,7 @@
 # About
 
 Link to finished game: https://emcd4.github.io/snake-game/ \
-Loosely based on tutorial: https://www.youtube.com/watch?v=7Rkib_fvowE
+Based on tutorial: https://www.youtube.com/watch?v=7Rkib_fvowE
 
 # Getting Started with Create React App
 
